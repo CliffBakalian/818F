@@ -36,15 +36,29 @@ def get_words(n):
 
 # find n unique random pronuciation vectors
 def generate_words(n = 100):
-  indices = get_sample(n) 
-  return [get_phonetic_list(i) for i in get_words(indices)]
+  if isinstance(n,list):
+    return [get_phonetic_list(i) for i in n] 
+  else:
+    indices = get_sample(n) 
+    return [get_phonetic_list(i) for i in get_words(indices)]
 
+# the sound hueristic
 def get_score(word1,word2):
   count = 0;
+  score = 0
   for i,j in zip(word1,word2):
+    #if sounds are exactly the same then max score
     if i == j:
-      count = count + 1;
-  return count
+      score = score + 2
+      count = count + 1
+    #if the sounds are basically the same, then half score
+    #stress marks on vowels for are basically the same for simplicity
+    elif i[0:2] == j[0:2]:
+      score = score + 1
+      count = count + 1
+    #if the sounds are slantly the same, then quarter score
+
+  return score * count
 
 '''
 make a similarity score. Based on how alike two words sound like. 
@@ -55,6 +69,8 @@ ending sounds: a mad pirate is p-irate
 also consider spelling verse pronuciantion
 '''
 def similar(word1, word2):
+  #get target length
+  tar_len = len(word1)
   # make word 2 the shorter of the two
   # just to make it simpler
   if len(word2) > len(word1):
@@ -71,13 +87,13 @@ def similar(word1, word2):
     end = pos+1 if pos - word1_len < 0 else word1_len
     start2 = word2_len - (pos + 1) if word2_len - (pos + 1) > 0 else 0
     end2 = word2_len - (pos - end + 1)
-    score = get_score(word1[start:end],word2[start2:]) 
+    score = get_score(word1[start:end],word2[start2:])
     scores.append(score);
 
   # hueristic for geting score is max scores of all subsets
   return sum(scores)
 
-def run_netowrk():
+def filter_set():
   '''
   using the simlarity score along with other metadata like word length, 
   percentage of overlap sounds, etc, 
@@ -98,6 +114,33 @@ def main(argv):
       while(True):
         a = input("word: ")
         print(get_phonetic_list(a))
+    elif argv[0] in ('-g','generate'):
+      target = input("target: ")
+      phonetic_target = get_phonetic_list(target)
+      try:
+        words = get_words(get_sample(int(argv[1])))
+      except:
+        words = get_words(get_sample(num_words))
+      out = open('generate.txt','w')
+      scores = {}
+      for i in words:
+        out.write(i + '\n')
+        score = similar(phonetic_target,get_phonetic_list(i))
+        if score in scores:
+          scores[score].append(i) 
+        else:
+          scores[score] = [i]
+      out.close()
+
+      max_score = (list(scores.keys()))
+      max_score.sort()
+      max_score = max_score[-7:]
+      max_score = max_score[::-1]
+      words = []
+      for ms in max_score:
+        words = words + scores[ms]
+      for word in words:
+        print(word)
   else:
     a = input("target: ")
     b = input("word: ")
